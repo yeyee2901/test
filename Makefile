@@ -5,6 +5,7 @@ clean:
 	rm -rf ./log/*
 
 run-local: swagger
+	go mod tidy
 	go run ./cmd/simpleaccount
 
 docker-up:
