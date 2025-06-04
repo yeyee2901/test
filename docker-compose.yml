@@ -1,0 +1,36 @@
+# FOR DEVELOPMENT PURPOSES
+version: '20.1'
+
+services:
+  postgresdb:
+    image: bitnami/postgresql:latest
+    env_file: build.env
+    volumes:
+      - ./sql/data:/bitnami/postgresql
+    ports: 
+      - '5432:5432'
+      - '34567:5432'
+    networks:
+      - simple-account-dot-net
+    healthcheck:
+      test: pg_isready -U postgres -d simple_account
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    env_file: build.env
+    networks:
+      - simple-account-dot-net
+    volumes:
+      - ./sql/migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://postgres:your_password@postgresdb/simple_account?sslmode=disable", "up" ]
+    links: 
+      - postgresdb
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+
+networks:
+  simple-account-dot-net:

@@ -1,0 +1,12 @@
+server:
+  mode: development
+  name: simple_account
+  listener: 127.0.0.1:32000
+  server_timeout_seconds: 10
+  logfile: log/app.log
+
+db:
+  db_name: simple_account
+  host: 127.0.0.1:5432
+  user: postgres
+  password: your_password
