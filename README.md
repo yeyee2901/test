@@ -1,5 +1,9 @@
 # Test
 
+Tech Stack:
+- `Docker` (for Postgres database), if testing is to be done without docker, then feel free to copy the migration scripts from `sql/migrations`
+- `Gin` - HTTP Framework for Golang
+
 ## Running Instructions
 
 ```bash 
