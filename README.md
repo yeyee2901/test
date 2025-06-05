@@ -5,12 +5,12 @@
 ```bash 
 # fire up the DB
 make docker-up
+make docker-down
 
 # runs the application
 go run-local
 
 # clear DB
-make docker-down
 make clean
 
 # view the log
@@ -35,6 +35,16 @@ Cara yang kedua adalah secara _programmatic_ dengan menerapkan sebuah __locking 
 Dalam system yang di desain menggunakan Golang dan mekanisme transaction dari DBMS, sangat kecil kemungkinan untuk terjadi _race condition_. Kecuali, apabila pada implementasi _programmatic_ yang telah disebutkan diatas tidak dilakukan dengan benar, maka _race condition_ dapat terjadi. Kemungkinan kedua adalah penggunaan _goroutine_ yang tidak benar.
 
 Selain itu, pool connection ke database juga harus di fine-tune untuk memastikan traffic yang masuk tetap berjalan lancar walaupun terjadi burst request.
+
+Testing untuk skenario serupa dapat dilihat pada file: `internal/api/api_test.go`. Test dapat dijalankan dengan menggunakan:
+
+```bash
+go test -v -count 1 ./internal/api
+```
+
+Catatan:
+- Setiap eksekusi test akan membuat 1 user unique
+- Setiap eksekusi test akan menjalankan 100 goroutine, 100x transaksi, dengan nominal 1000.00
 
 ### Regarding Rollback Should a Failure Occurs In The Middle of a Transaction
 
