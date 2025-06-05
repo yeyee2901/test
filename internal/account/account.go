@@ -40,6 +40,9 @@ type EWalletSystem interface {
 
 	// AddBalance adds fund for the user
 	AddBalance(*Account, float64) error
+
+	// DeductBalance deducts fund from the user
+	DeductBalance(*Account, float64) error
 }
 
 type simpleEWallet struct {
@@ -142,6 +145,60 @@ func (s *simpleEWallet) AddBalance(acc *Account, amount float64) error {
 		UserID:  acc.ID,
 		Amount:  amount,
 		TrxType: TrxTypeCredit,
+	}
+
+	_, err = tx.NamedExec(qTrx, trx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return nil
+	}
+
+	return nil
+}
+
+// DeductBalance implements EWalletSystem.
+func (s *simpleEWallet) DeductBalance(acc *Account, amount float64) error {
+	if !canDeductFund(acc, amount) {
+		return ErrInsufficient
+	}
+
+	qBalance := `
+        UPDATE users
+        SET
+            balance = balance - $1
+        WHERE
+            id = $2
+    `
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(qBalance, amount, acc.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// if successful on adding balance, then create
+	// the transaction record
+	qTrx := `
+        INSERT INTO transactions
+            (user_id, amount, type)
+        VALUES
+            (:user_id, :amount, :type)
+    `
+
+	trx := Transactions{
+		UserID:  acc.ID,
+		Amount:  amount,
+		TrxType: TrxTypeDebit,
 	}
 
 	_, err = tx.NamedExec(qTrx, trx)
