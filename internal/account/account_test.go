@@ -70,7 +70,7 @@ func Test_simpleAccountService_AddBalance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotErr := ewallet.AddBalance(tt.acc, tt.amount)
+			trx, gotErr := ewallet.AddBalance(tt.acc, tt.amount)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("AddBalance() failed: %v", gotErr)
@@ -80,6 +80,8 @@ func Test_simpleAccountService_AddBalance(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("AddBalance() succeeded unexpectedly")
 			}
+
+			t.Logf("transaction data: %+v\n", trx)
 		})
 	}
 
@@ -166,10 +168,10 @@ func Test_simpleAccountService_DeductBalance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotErr := ewallet.DeductBalance(tt.acc, tt.amount)
+			trx, gotErr := ewallet.DeductBalance(tt.acc, tt.amount)
 			if gotErr != nil {
 				if !tt.wantErr {
-					t.Errorf("AddBalance() failed: %v", gotErr)
+					t.Errorf("DeductBalance() failed: %v", gotErr)
 				}
 				t.Log("log: got error", gotErr)
 				return
@@ -177,6 +179,8 @@ func Test_simpleAccountService_DeductBalance(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("AddBalance() succeeded unexpectedly")
 			}
+
+			t.Logf("transaction data: %+v\n", trx)
 		})
 	}
 

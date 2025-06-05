@@ -2,12 +2,16 @@ package account
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
 
-var ErrInsufficient = fmt.Errorf("account: insufficient funds")
+var (
+	ErrInsufficient = fmt.Errorf("account: insufficient funds")
+	ErrNotFound     = fmt.Errorf("account: data not found")
+)
 
 const (
 	TrxTypeCredit = "credit"
@@ -39,10 +43,10 @@ type EWalletSystem interface {
 	GetUser(username string) (*Account, error)
 
 	// AddBalance adds fund for the user
-	AddBalance(*Account, float64) error
+	AddBalance(*Account, float64) (*Transactions, error)
 
 	// DeductBalance deducts fund from the user
-	DeductBalance(*Account, float64) error
+	DeductBalance(*Account, float64) (*Transactions, error)
 }
 
 type simpleEWallet struct {
@@ -106,6 +110,9 @@ func (s *simpleEWallet) GetUser(username string) (*Account, error) {
 	acc := new(Account)
 	err := s.db.Get(acc, q, username)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, err)
+		}
 		return nil, err
 	}
 
@@ -113,7 +120,7 @@ func (s *simpleEWallet) GetUser(username string) (*Account, error) {
 }
 
 // AddBalance implements AccountService.
-func (s *simpleEWallet) AddBalance(acc *Account, amount float64) error {
+func (s *simpleEWallet) AddBalance(acc *Account, amount float64) (*Transactions, error) {
 	qBalance := `
         UPDATE users
         SET
@@ -123,13 +130,13 @@ func (s *simpleEWallet) AddBalance(acc *Account, amount float64) error {
     `
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = tx.Exec(qBalance, amount, acc.ID)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// if successful on adding balance, then create
@@ -138,34 +145,41 @@ func (s *simpleEWallet) AddBalance(acc *Account, amount float64) error {
         INSERT INTO transactions
             (user_id, amount, type)
         VALUES
-            (:user_id, :amount, :type)
+            ($1, $2, $3)
+        RETURNING
+            id, created_at
     `
 
-	trx := Transactions{
+	trx := &Transactions{
 		UserID:  acc.ID,
 		Amount:  amount,
 		TrxType: TrxTypeCredit,
 	}
 
-	_, err = tx.NamedExec(qTrx, trx)
+	var trxID int
+	var trxDate sql.NullTime
+	err = tx.QueryRow(qTrx, trx.UserID, trx.Amount, trx.TrxType).Scan(&trxID, &trxDate)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return nil
+		return nil, err
 	}
 
-	return nil
+	trx.ID = trxID
+	trx.CreatedAt = trxDate
+
+	return trx, nil
 }
 
 // DeductBalance implements EWalletSystem.
-func (s *simpleEWallet) DeductBalance(acc *Account, amount float64) error {
+func (s *simpleEWallet) DeductBalance(acc *Account, amount float64) (*Transactions, error) {
 	if !canDeductFund(acc, amount) {
-		return ErrInsufficient
+		return nil, ErrInsufficient
 	}
 
 	qBalance := `
@@ -177,13 +191,13 @@ func (s *simpleEWallet) DeductBalance(acc *Account, amount float64) error {
     `
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = tx.Exec(qBalance, amount, acc.ID)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// if successful on adding balance, then create
@@ -192,28 +206,35 @@ func (s *simpleEWallet) DeductBalance(acc *Account, amount float64) error {
         INSERT INTO transactions
             (user_id, amount, type)
         VALUES
-            (:user_id, :amount, :type)
+            ($1, $2, $3)
+        RETURNING
+            id, created_at
     `
 
-	trx := Transactions{
+	trx := &Transactions{
 		UserID:  acc.ID,
 		Amount:  amount,
 		TrxType: TrxTypeDebit,
 	}
 
-	_, err = tx.NamedExec(qTrx, trx)
+	var trxID int
+	var trxDate sql.NullTime
+	err = tx.QueryRow(qTrx, trx.UserID, trx.Amount, trx.TrxType).Scan(&trxID, &trxDate)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return nil
+		return nil, err
 	}
 
-	return nil
+	trx.ID = trxID
+	trx.CreatedAt = trxDate
+
+	return trx, nil
 }
 
 func canDeductFund(acc *Account, amount float64) bool {

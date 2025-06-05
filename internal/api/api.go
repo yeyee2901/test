@@ -48,10 +48,14 @@ func NewAPIServer(cfg *config.Config, db *sqlx.DB) *APIServer {
 func (api *APIServer) RegisterMiddlewares() {
 	api.gin.Use(gin.Recovery())
 	api.gin.Use(CORSMiddleware())
+	api.gin.Use(AttachRequestID())
 }
 
 func (api *APIServer) RegisterEndpoints() {
 	// Routes here...
+	api.gin.GET("/api/balance", api.GetBalance)
+	api.gin.POST("/api/transactions/credit", api.DepositRequest)
+	api.gin.POST("/api/transactions/debit", api.WithdrawRequest)
 
 	// register swagger
 	docs.SwaggerInfo.Host = api.config.Listener

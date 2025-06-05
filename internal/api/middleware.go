@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -18,6 +19,19 @@ func CORSMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+func AttachRequestID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// check in header
+		reqID := c.GetHeader("X-Request-Id")
+		if reqID == "" {
+			reqID = uuid.NewString()
+		}
+
+		c.Set("X-Request-Id", reqID)
 		c.Next()
 	}
 }

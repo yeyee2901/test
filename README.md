@@ -34,6 +34,8 @@ Cara yang kedua adalah secara _programmatic_ dengan menerapkan sebuah __locking 
 
 Dalam system yang di desain menggunakan Golang dan mekanisme transaction dari DBMS, sangat kecil kemungkinan untuk terjadi _race condition_. Kecuali, apabila pada implementasi _programmatic_ yang telah disebutkan diatas tidak dilakukan dengan benar, maka _race condition_ dapat terjadi. Kemungkinan kedua adalah penggunaan _goroutine_ yang tidak benar.
 
+Selain itu, pool connection ke database juga harus di fine-tune untuk memastikan traffic yang masuk tetap berjalan lancar walaupun terjadi burst request.
+
 ### Regarding Rollback Should a Failure Occurs In The Middle of a Transaction
 
 Untuk mekanisme rollback yang dapat dilakukan __mid-transaction__, dapat menggunakan fitur transaction yang sama yang ada pada DBMS, dengan menggunakan `ROLLBACK`, semua perubahan yang terjadi saat proses transaction akan di revert ke saat sebelum transaction dan __lock__ akan dilepas.
