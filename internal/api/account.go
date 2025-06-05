@@ -2,6 +2,15 @@ package api
 
 import "github.com/gin-gonic/gin"
 
+// GetBalance gin handler
+// @Summary Get balance info
+// @Tags API
+// @Param user_id query string true "User ID"
+// @Produce json
+// @Success 200 {object} GetBalanceResponse "Successful response"
+// @Router /api/balance [get]
+func (s *APIServer) GetBalance(c *gin.Context) {}
+
 // DepositRequest gin handler
 // @Summary Adds balance to the account
 // @Tags API
@@ -12,8 +21,8 @@ import "github.com/gin-gonic/gin"
 // @Router /api/transactions/credit [post]
 func (s *APIServer) DepositRequest(c *gin.Context) {}
 
-// DepositRequest gin handler
-// @Summary Adds balance to the account
+// WithdrawRequest gin handler
+// @Summary Deducts balance from the account
 // @Tags API
 // @Param request body WithdrawRequest true "JSON body"
 // @Produce json

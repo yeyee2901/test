@@ -1,5 +1,9 @@
 package api
 
+type GetBalanceResponse struct {
+	Balance float64 `json:"balance"`
+}
+
 type DepositRequest struct {
 	UserID int     `json:"user_id,omitempty" binding:"required"`
 	Amount float64 `json:"amount,omitempty"  binding:"required"`
